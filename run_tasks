@@ -1,0 +1,82 @@
+#!/bin/bash
+
+basedir=`pwd`
+dirOCAL=/home/larsb/CodeDevelopment/Work/TROPOMI/ocalfw
+dirConfig=${dirOCAL}/ocal/cfg
+dirMeasurements=tbtv
+dirL0=/data/storage01/trop_l0/${dirMeasurements}
+dirResults=/data/local/users/larsb/results
+dirQuicklooks=${dirResults}/quicklooks
+dirOutput=${dirResults}/trop/msm/${dirMeasurements}
+nofIterations=3
+l01bPath=`grep l01b ${dirConfig}/config.yaml | grep tropproc  | tr '"' '\n' | grep tropproc`
+l01bVersion=`ls ${l01bPath}/CORE* | sed s/"\/CORE_"/"\n"/ | sed s/"_"/"\\n"/ | grep -v version | grep -v [a-z]`
+RUNTASK=${dirOCAL}/tools/runtask
+
+## =============================================================================
+##  Iterate through the groups of measurements
+##
+for GROUP in StarEarth DLED
+{
+    ## Set up the file to log the timing information
+    logfile="quicklooks_${l01bVersion}_${GROUP}.py"
+    logfileTask="quicklooks_${l01bVersion}_${GROUP}.log"
+    echo "# ----------------------------------------------------------------------" > ${logfile}
+    echo "# Generated ....... : `date`"                                   >> ${logfile}
+    echo "# L01b path ....... : ${l01bPath}"                              >> ${logfile}
+    echo "# L01b SVN revision : ${l01bVersion}"                           >> ${logfile}
+
+    ## =========================================================================
+    ##  Iterate through the files within a group of measurements
+    ##
+    for FILE in `ls ${GROUP}`
+    {
+        ## Extract sizew of original L0 dataset
+        varDatasize=`du -k ${dirL0}/${FILE} | tr "\t" "\n" | grep -v trop`
+
+        ##  Store dataset information and start Python dictionary
+        echo "# ----------------------------------------------------------------------" >> ${logfile}
+        echo "# `date` - ${FILE} - START"       >> ${logfile}
+        echo "data['${FILE}'] = {"              >> ${logfile}
+        echo "    'datasize' : ${varDatasize}," >> ${logfile}
+
+        ## =====================================================================
+        ##  Iterate through the Quicklook generation tasks
+        ##
+        for TASK in proc_raw proc_quicklook quicklook_detector quicklook_raw quicklook_scanning_maximum quicklook_scanning_row
+        {
+            echo "    '${TASK}' : [" >> ${logfile}
+            # Work-around for L01b bug
+            mkdir -p ${dirOutput}/${GROUP}/${FILE}/${TASK}
+            touch ${dirOutput}/${GROUP}/${FILE}/${TASK}/gseDat.nc
+            ##
+            ##  Iterations for the task to gather some statistics
+            ##
+            for NUM in 1 2 3 4
+            {
+                echo " - ${GROUP} :: ${FILE} :: ${TASK} :: ${NUM}"
+
+                { time -p ${RUNTASK} -s 123456 ${GROUP}/${FILE}/${TASK}.ocal ; } 2> ${logfileTask}
+
+                tmp=`cat ${basedir}/${logfileTask} | grep -v Error | grep -v DEBUG | sed s/"real"/"\nreal"/ | grep sys`
+                runtimeReal=`cat ${basedir}/${logfileTask} | grep real | sed s/"real"// | sed 's/^[ \t]*//' | grep -v TROPO | grep -v INFO | grep -v DEBUG`
+                runtimeUser=`cat ${basedir}/${logfileTask} | grep user | sed s/"user"// | sed 's/^[ \t]*//' | grep -v TROPO | grep -v INFO | grep -v DEBUG | grep -v Fatal | grep -v Notice | grep -v Error | grep -v Main`
+                runtimeSys=`cat ${basedir}/${logfileTask} | grep sys | sed s/"sys"// | sed 's/^[ \t]*//' | grep -v TROPO | grep -v INFO | grep -v DEBUG | grep -v Fatal | grep -v Notice | grep -v Error | grep -v Main`
+                ocalfwVersion=`grep "OCAL framework SVN" ${logfileTask} | sed s/"Using OCAL"/"\nOCAL"/ | grep -v INFO`
+
+                echo "        [${runtimeReal}, ${runtimeUser}, ${runtimeSys}]," >> ${logfile}
+            }
+            echo "    ]," >> ${logfile}
+        }  ##  END TASK
+
+        # Close directory group for this dataset
+        echo "}"                         >> ${logfile}
+        echo "# `date` - ${FILE} - END"  >> ${logfile}
+
+    }  ##  END FILE ============================================================
+
+    # Clean-up
+    mv ${logfile} ${dirQuicklooks}
+    rm ${logfileTask}
+
+}
