@@ -1,0 +1,177 @@
+#!/bin/bash
+
+## =============================================================================
+##
+##  Variables
+##
+## =============================================================================
+
+directory_base=`pwd`
+directory_ocalfw=$OCALFW
+directory_l0=/data/storage01/trop_l0/pre_env
+directory_scripts=`dirname $0`
+directory_templates=${directory_scripts}/../templates
+directory_quicklooks=${directory_base}/quicklooks
+
+RUNTASK="${directory_ocalfw}/tools/runtask -s 123456"
+DATASETS=(DARK DLED StarEarth LASER ORBIT SWIR WLS)
+TASKS=(proc_raw proc_quicklook quicklook_detector quicklook_raw quicklook_scanning_maximum quicklook_scanning_row)
+
+## =============================================================================
+##
+##  Configuration summary
+##
+## =============================================================================
+
+echo "o-------------------------------------------------------------------o"
+echo " - Base directory ......... = ${directory_base}"
+echo " - L0 data directory ...... = ${directory_l0}"
+echo " - Script location ........ = ${directory_scripts}"
+echo " - Task templates directory = ${directory_templates}"
+echo " - Groups of datasets ..... = ${DATASETS[@]}"
+echo " - Task configurations .... = ${TASKS[@]}"
+echo "o-------------------------------------------------------------------o"
+
+## =============================================================================
+##
+##  Functions
+##
+## =============================================================================
+
+##______________________________________________________________________________
+## Create the task configuration files from the corresponding templates
+##
+## @param DIR_DATA  - Directory with the L0 data (partial path).
+## @param DIR_TASK  - Directory with the task configuration files (partial path).
+## @param DIR_INPUT - Directory with the Lx files used as input for the quicklooks.
+
+create_taskfiles ()
+{
+    DIR_DATA=$1
+    DIR_TASK=$2
+    DIR_INPUT=$3
+
+    for TASK in ${TASKS[@]}
+    {
+        varTaskfile=${TASK}.ocal
+        cat ${directory_templates}/${varTaskfile} \
+            | sed s@"<<<FILE>>>"@"${DIR_DATA}"@ \
+            | sed s@"<<<INPUTS>>>"@"${DIR_INPUT}"@ \
+            | sed s@"<<<TASKDIR>>>"@"${DIR_TASK}"@ > ${DIR_TASK}/${varTaskfile}
+    }
+}
+
+##______________________________________________________________________________
+## Scan the directory with the L0 data and create task files
+
+scan_l0data ()
+{
+    for GROUP in ${DATASETS[@]}
+    {
+        FILES=`ls ${directory_l0} | grep -i ${GROUP}`
+
+        echo "- Group '${GROUP}'"
+
+        for FILE in $FILES
+        {
+            varDatadir=${FILE}
+            varInputdir="${GROUP}/${varDatadir}"
+            varTaskdir=${directory_base}/${varInputdir}
+
+            echo " --> ${FILE}"
+
+            # Create the directory for the group of tasks
+            mkdir -p ${varTaskdir}
+
+            # Create the task confguration files
+            create_taskfiles ${varDatadir} ${varTaskdir} ${varInputdir}
+        }
+    }
+}
+
+##______________________________________________________________________________
+## Create Makefile to run the tasks
+
+create_makefile ()
+{
+    echo "# Makefile create `date` by `whoami`" > Makefile
+
+    # Assemble 'help' target
+
+    echo -e "\nhelp:" >> Makefile
+    echo -e "\t@echo \"The following are valid build targets for this Makefile:\"" >> Makefile
+    for GROUP in ${DATASETS[@]}
+    {
+        echo -e "\t@echo \"...  ${GROUP}\"" >> Makefile
+        for TASK in ${TASKS[@]}
+        {
+            echo -e "\t@echo \"...  ${GROUP}.${TASK}\"" >> Makefile
+        }
+    }
+
+    # Assemble 'all' target
+
+    TARGETS=""
+
+    for GROUP in ${DATASETS[@]}
+    {
+        TARGETS="${TARGETS} ${GROUP}"
+    }
+    echo -e "\nall: ${TARGETS}" >> Makefile
+
+    # Assemble 'clean' target
+
+    echo -e "\nclean:" >> Makefile
+
+    for GROUP in ${DATASETS[@]}
+    {
+        echo -e "\t@rm -rf ${GROUP}" >> Makefile
+    }
+
+    # Create the various group targets
+    create_makefile_groups
+}
+
+##______________________________________________________________________________
+## Create Makefile build targets for the individual groups of data files
+
+create_makefile_groups ()
+{
+    cd ${directory_base}
+
+    for GROUP in ${DATASETS[@]}
+    {
+        if [[ -d ${GROUP} ]] ; then
+            TARGETS=""
+            for TASK in ${TASKS[@]}
+            {
+                TARGETS="${TARGETS} ${GROUP}.${TASK}"
+            }
+            echo -e "\n${GROUP}: ${TARGETS}" >> Makefile
+
+            for TASK in ${TASKS[@]}
+            {
+                echo -e "\n${GROUP}.${TASK}:"   >> Makefile
+
+                FILES=`find ${GROUP} -name "*${TASK}*"`
+
+                for FILE in $FILES
+                {
+                    echo -e "\t${RUNTASK} ${FILE}" >> Makefile
+                }
+            }
+        fi
+    }
+}
+
+## =============================================================================
+##
+##  Main instructions
+##
+## =============================================================================
+
+## Scan the directory with the L0 data and create task files
+scan_l0data
+
+## Create Makefile to run the tasks
+create_makefile
