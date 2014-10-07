@@ -1,0 +1,18 @@
+#!/bin/bash
+
+targetdir=/data/local/users/larsb/results/quicklooks
+
+for FILE in `ls`
+{
+    for PLOT in quicklook_detector quicklook_raw quicklook_scanning_all quicklook_scanning_all_mask quicklook_scanning_maximum quicklook_scanning_row
+    {
+        varSource=${FILE}/${PLOT}/quicklook_detector4.pdf
+        # check of quicklooks file is actually there
+        if [[ -f ${varSource} ]] ; then
+        {
+             echo " - Copying ${varSource}"
+             cp ${varSource} ${targetdir}/${FILE}.${PLOT}.pdf
+        }
+        fi
+    }
+}
