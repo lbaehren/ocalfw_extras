@@ -1,0 +1,15 @@
+# Template for quicklook tasks
+{
+   'klass': 'ocal.scheduler.task.Task',
+   'targets': [
+        {
+            'klass'          : 'ocal.scheduler.processor.joborder.TropL01bJobOrder',
+            'l01b_procedure' : 'ocal.procedures.trop.forward.PROC_QUICKLOOK',
+            'input_files'    : '$(directory.L0data)/<<<MEASUREMENTS>>>/<<<FILE>>>/*.bin',
+            'output_files'   : ['qlbd{}raw', 'qlbd{}eps'],
+            'ckd_index'      : '$(directory.ckd_sets)/trop/<<<MEASUREMENTS>>>.ckdindex.xml',
+            'cfg_file'       : '$(directory.tasks)/trop/msm/<<<MEASUREMENTS>>>/l0x_all.yaml',
+            'cfg'            : {}
+        },
+    ]
+}

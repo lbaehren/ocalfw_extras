@@ -1,0 +1,15 @@
+{
+    'klass': 'ocal.scheduler.task.Task',
+    'targets': [
+        #___________________________________________________________________
+        # Convert L0 data to Lx
+        {
+            'klass'          : 'ocal.scheduler.processor.joborder.TropL01bJobOrder',
+            'l01b_procedure' : 'ocal.procedures.trop.forward.PROC_RAW',
+            'input_files'    : '$(directory.L0data)/<<<MEASUREMENTS>>>/<<<FILE>>>/*.bin',
+            'ckd_index'      : '$(directory.ckd_sets)/trop/<<<MEASUREMENTS>>>.ckdindex.xml', 
+            'cfg_file'       : '$(directory.tasks)/trop/msm/<<<MEASUREMENTS>>>/l0x_all.yaml',
+            'cfg'            : {},
+        },
+    ],
+}

@@ -1,0 +1,29 @@
+{
+    'klass': 'ocal.scheduler.task.Task',
+    'targets': [
+        {
+            'klass'       : 'ocal.algorithms.tropomi.quicklook.report_quicklook_swir.ReportQuicklookSWIRAlgorithm',
+            'input_files' : null,
+            'cfg_file'    : null,
+            #________________________________________________________
+            # Algorithm configuration parameters
+            'cfg'         : {
+                'bins'                 : 100,
+                'percentage_range'     : [0.0, 100.0],
+                'histogram_normalize'  : False,
+                'histogram_logscaley'  : True,
+                'with_projections_xy'  : False,
+                'blocks'               : False,
+                'input_averaged'       : False,
+                'quicklook_detector'   : False,
+                'quicklook_scanning'   : True,
+                'find_track_method'    : "row_scan",
+                #____________________________________________________
+                # Input files from which to create the quicklook(s)
+                'input_files' : [
+                    '$(directory.results)/trop/msm/<<<MEASUREMENTS>>>/<<<INPUTS>>>/proc_raw/trl1brb{}g.lx.nc',
+                    ],
+            },
+        },
+    ],
+}
