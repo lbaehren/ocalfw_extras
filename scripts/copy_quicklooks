@@ -1,6 +1,23 @@
 #!/bin/bash
 
-targetdir=/data/local/users/larsb/results/quicklooks
+# (c) SRON - Netherlands Institute for Space Research (2014).
+# All Rights Reserved.
+# This software is distributed under the BSD 2-clause license.
+
+## === Variables ===============================================================
+
+varLogin=`whoami`
+targetdir=/data/local/users/${varLogin}/results/quicklooks
+
+## === Processing ==============================================================
+
+## check if the target directory exists; if this is not the case, create it
+
+if [ ! -d "$targetdir" ]; then
+  mkdir -p ${targetdir}
+fi
+
+## Copy the quicklooks files
 
 for FILE in `ls`
 {

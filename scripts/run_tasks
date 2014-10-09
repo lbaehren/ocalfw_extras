@@ -1,11 +1,18 @@
 #!/bin/bash
 
+# (c) SRON - Netherlands Institute for Space Research (2014).
+# All Rights Reserved.
+# This software is distributed under the BSD 2-clause license.
+
+## === Variables ===============================================================
+
 basedir=`pwd`
-dirOCAL=/home/larsb/CodeDevelopment/Work/TROPOMI/ocalfw
+varLogin=`whoami`
+dirOCAL=$OCALFW
 dirConfig=${dirOCAL}/ocal/cfg
 dirMeasurements=tbtv
 dirL0=/data/storage01/trop_l0/${dirMeasurements}
-dirResults=/data/local/users/larsb/results
+dirResults=/data/local/users/${varLogin}/results
 dirQuicklooks=${dirResults}/quicklooks
 dirOutput=${dirResults}/trop/msm/${dirMeasurements}
 nofIterations=3
