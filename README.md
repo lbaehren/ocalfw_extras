@@ -41,18 +41,12 @@ you might want to do one of the following:
 
     a. Create build directory
 
-        ```
         mkdir build
-        ```
 
     b. Configure package
 
-       ```
-       cmake ..
-       ```
+        cmake ..
 
     c. Install scripts (and auxiliary data)
 
-       ```
-       make install
-       ```
+        make install
