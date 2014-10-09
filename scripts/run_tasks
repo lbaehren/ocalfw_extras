@@ -18,9 +18,12 @@ RUNTASK=${dirOCAL}/tools/runtask
 ##
 for GROUP in StarEarth DLED
 {
-    ## Set up the file to log the timing information
-    logfile="quicklooks_${l01bVersion}_${GROUP}.py"
-    logfileTask="quicklooks_${l01bVersion}_${GROUP}.log"
+    ## Set up the file to log the timing information: We need to be carefull
+    ## here in order to avoid over-writing previous timing data.
+    timestamp=`date +%Y%m%d`
+    logfileBasename="quicklooks_${l01bVersion}_${timestamp}_${GROUP}"
+    logfile="${logfileBasename}.py"
+    logfileTask="${logfileBasename}.log"
     echo "# ----------------------------------------------------------------------" > ${logfile}
     echo "# Generated ....... : `date`"                                   >> ${logfile}
     echo "# L01b path ....... : ${l01bPath}"                              >> ${logfile}
