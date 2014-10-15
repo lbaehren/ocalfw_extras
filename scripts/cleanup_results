@@ -1,0 +1,24 @@
+#!/bin/bash
+
+varLogin=`whoami`
+varYear=`date +%Y`
+varPathResults=/data/local/users/${varLogin}/results/trop
+
+# find task status files
+FILES=`find ${varPathResults} -name task.status.txt`
+
+for FILE in ${FILES}
+{
+    # Get the status message
+    varStatus=`cat ${FILE}`
+    varDirTask=`echo ${FILE} | sed s/"\/task.status.txt"//`
+
+    # Check of task was successful
+    if [[ $varStatus == SUCCESS ]] ;
+    then
+        echo $varStatus
+    else
+        echo "-- Task $varDirTask failed - removing data."
+        rm -rf $varDirTask
+    fi
+}
