@@ -1,0 +1,86 @@
+#!/bin/bash
+
+while getopts q:f:l: opt; do
+  case $opt in
+  q)
+      jf=$OPTARG
+      ;;
+  f)
+      first=$OPTARG
+      ;;
+  l)
+      last=$OPTARG
+      ;;
+  esac
+done
+shift $((OPTIND - 1))
+
+# Extracting a range of pages from a PDF file:
+if [ $# -ne 1 ]; then
+  echo "Usage: `basename $0` [-q <quality>] [-f <first page>] [-l <last page>] <PDF-file>"
+  echo
+  echo "Keep only page range <first page> (default 1) up to and including <last page>"
+  echo "(default last) from <PDF-file>, using lossy compression with quality factor"
+  echo "<quality> (default 0.9), but not downsampling. The output file name includes"
+  echo "the page range or \"shrunk\" if the whole file is specified. A smaller quality"
+  echo "factor looks better; the values for the predefined settings are prepress 0.15,"
+  echo "printer 0.4, ebook/screen 0.76, default 0.9."
+  exit 1
+fi
+
+if [ -z "$first$last" ]; then
+  id="shrunk"
+fi
+if [ -z $jf ]; then
+  jf=0.9
+fi
+if [ -z $first ]; then
+  first=1
+fi
+if [ -z $last ]; then
+  if [ "${1##*.}" = "eps" ]; then
+    last=1
+  else
+    last=`gs -q -dNODISPLAY -c "($1) (r) file runpdfbegin pdfpagecount = quit"`
+  fi
+fi
+if [ -z $id ]; then
+  id="p${first}-${last}"
+fi
+base=${1%.pdf}
+base=${base%.eps}
+
+cond=`bc <<< "$jf<0.5"`
+if [ $cond -eq 1 ]; then
+  sam="[1 1 1 1]"
+else
+  sam="[2 1 1 2]"
+fi
+dict="<< /HSamples $sam /VSamples $sam /QFactor $jf /Blend 1 /ColorTransform 1 >>"
+
+tmp=/dev/shm/bollocks_tmp$RANDOM.ps
+author=`sed '/.*\/Author\s*(\([^)]*\).*/!d;s//\1/g' "${1}" | sed '$!d'`
+title=`sed '/.*\/Title\s*(\([^)]*\).*/!d;s//\1/g' "${1}" | sed '$!d'`
+echo "[ /Author(${author})/Title(${title})/DOCINFO pdfmark" > $tmp
+
+gs -q -dSAFER -dNOPAUSE -dBATCH -sDEVICE=pdfwrite \
+-dFirstPage=${first} -dLastPage=${last} \
+-dPDFSETTINGS=/prepress \
+-dCompatibilityLevel=1.3 \
+-dAutoRotatePages=/None \
+-dDownsampleColorImages=false \
+-dEncodeColorImages=true \
+-dAutoFilterColorImages=false \
+-dColorImageFilter=/DCTEncode \
+-dDownsampleGrayImages=false \
+-dEncodeGrayImages=true \
+-dAutoFilterGrayImages=false \
+-dGrayImageFilter=/DCTEncode \
+-dDownsampleMonoImages=false \
+-dEncodeMonoImages=true \
+-dMonoImageFilter=/FlateEncode \
+-sOutputFile="${base}_${id}.pdf" \
+-c ".setpdfwrite << /ColorImageDict $dict /GrayImageDict $dict >> setdistillerparams" -f \
+"${1}" $tmp
+
+rm $tmp
